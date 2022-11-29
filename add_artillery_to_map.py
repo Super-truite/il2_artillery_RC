@@ -13,20 +13,20 @@ GRIDSIZE = 10000
 range_artillery = {"bm13" : 8000, "sdkfz251-szf" : 2000, "124bm13": 8000, "batterytodt": 47000, "m272":21000, "r669":10000, "r683":33000, "lefh18": 11000, "ml20": 17000, "m1gun": 15000 ,"m30": 11000,"bl55in": 14000 }
 path_mission = config['DEFAULT']['path_mission']
 
-def grid_to_pos(grid, key, subkey, subsubkey):
-    ZPos = (grid[1]-1) * GRIDSIZE + ((key-1) % 3) * (GRIDSIZE / 3) + ((subkey-1) % 3) * (GRIDSIZE / 9) + ((subsubkey-1) % 3) * (GRIDSIZE / 27) + (GRIDSIZE / 27) / 2
-    XPos = Max_map_X - (grid[0]-1) * GRIDSIZE - (2-math.floor((key-1) / 3)) * (GRIDSIZE / 3) - (2-math.floor((subkey-1) / 3)) * (GRIDSIZE / 9) - (2-math.floor((subsubkey-1) / 3)) * (GRIDSIZE / 27) + (GRIDSIZE / 27) / 2 
+def grid_to_pos(grid, key, subkey, subsubkey,  Xmax, Z0):
+    ZPos = Z0 + (grid[1]-1) * GRIDSIZE + ((key-1) % 3) * (GRIDSIZE / 3) + ((subkey-1) % 3) * (GRIDSIZE / 9) + ((subsubkey-1) % 3) * (GRIDSIZE / 27) + (GRIDSIZE / 27) / 2
+    XPos = Xmax - (grid[0]-1) * GRIDSIZE - (2-math.floor((key-1) / 3)) * (GRIDSIZE / 3) - (2-math.floor((subkey-1) / 3)) * (GRIDSIZE / 9) - (2-math.floor((subsubkey-1) / 3)) * (GRIDSIZE / 27) + (GRIDSIZE / 27) / 2 
     return XPos, ZPos
 
 def grid_coordinates_to_key(x,y):
     return y * 3 + x + 1
 
-def pos_to_grid(XPos, ZPos):
-    grid = [math.floor((Max_map_X - XPos)/GRIDSIZE) + 1, math.floor(ZPos/GRIDSIZE) + 1]
+def pos_to_grid(XPos, ZPos, Xmax, Z0):
+    grid = [math.floor((Xmax - XPos)/GRIDSIZE) + 1, math.floor((ZPos - Z0)/GRIDSIZE) + 1]
     # Computing key
     # switching from X, Z IL2 coordinates to x,y indices inside the grid
-    x_inside_grid = ZPos - (grid[1]-1) * GRIDSIZE
-    y_inside_grid = GRIDSIZE - ((Max_map_X - XPos) - (grid[0]-1) * GRIDSIZE)
+    x_inside_grid = (ZPos - Z0) - (grid[1]-1) * GRIDSIZE
+    y_inside_grid = GRIDSIZE - ((Xmax - XPos) - (grid[0]-1) * GRIDSIZE)
     x_index = math.floor(x_inside_grid / (GRIDSIZE/3))
     y_index = math.floor(y_inside_grid / (GRIDSIZE/3))
     key = grid_coordinates_to_key(x_index, y_index)
@@ -62,7 +62,7 @@ def is_in_range(X_allies_arty_leader, Z_allies_arty_leader, type_allies_arty_lea
         else:
             return False
     
-def available_firing_positions(Max_map_X, Max_map_Z, rectangle, X_arty_leader, Z_arty_leader, type_arty_leader):
+def available_firing_positions(Max_map_X, Max_map_Z, rectangle, X_arty_leader, Z_arty_leader, type_arty_leader, Xmax, Z0):
     list_positions = []
     range_grid_X, range_grid_Y = math.floor(Max_map_X / GRIDSIZE +1), math.floor(Max_map_Z / GRIDSIZE + 1)
     for i in range(1,range_grid_X+1):
@@ -70,7 +70,7 @@ def available_firing_positions(Max_map_X, Max_map_Z, rectangle, X_arty_leader, Z
             for key in range(1, 10):
                 for subkey in range(1, 10):
                     for subsubkey in range(1, 10):
-                        XPos, ZPos = grid_to_pos([i, j], key, subkey, subsubkey)
+                        XPos, ZPos = grid_to_pos([i, j], key, subkey, subsubkey,  Xmax, Z0)
                         if is_inside_rectangle(XPos, ZPos, rectangle):
                             if is_in_range(X_arty_leader, Z_arty_leader, type_arty_leader, XPos, ZPos):
                                 list_positions.append((XPos, ZPos))
@@ -158,38 +158,41 @@ X_right_up_axis, Z_right_up_axis = newMission.ObjList[zone_right_up_axis].PropLi
 rectangle_axis = [(X_left_down_axis, Z_left_down_axis), (X_right_up_axis, Z_right_up_axis)]
 
 # extracting map boundaries
-map_boudaries_object = findObject(newMission, Type='Vehicle', Name="map_boundary")[0]
-Max_map_X, Max_map_Z = newMission.ObjList[map_boudaries_object].PropList['XPos'], newMission.ObjList[map_boudaries_object].PropList['ZPos']
-Max_map_X, Max_map_Z
+map_boudaries_object = findObject(newMission, Type='Vehicle', Name="map_boundary_1")[0]
+X0, Z0 = newMission.ObjList[map_boudaries_object].PropList['XPos'], newMission.ObjList[map_boudaries_object].PropList['ZPos']
+map_boudaries_object = findObject(newMission, Type='Vehicle', Name="map_boundary_2")[0]
+Xmax, Zmax = newMission.ObjList[map_boudaries_object].PropList['XPos'], newMission.ObjList[map_boudaries_object].PropList['ZPos']
+Max_map_X, Max_map_Z = Xmax - X0, Zmax - Z0
 
 # extracting position, type and link  of artillery
 allies_arty_leader = findObject(newMission, Type='Vehicle', Name="Lead_artillery_allies")[0]
 X_allies_arty_leader, Z_allies_arty_leader = newMission.ObjList[allies_arty_leader].PropList['XPos'], newMission.ObjList[allies_arty_leader].PropList['ZPos']
 type_allies_arty_leader = newMission.ObjList[allies_arty_leader].PropList['Script'].split('\\')[-1].split('.txt')[0]
 link_index_allies_arty_leader = newMission.ObjList[allies_arty_leader].PropList['LinkTrId']
-firing_positions_allies = available_firing_positions(Max_map_X, Max_map_Z, rectangle_allies, X_allies_arty_leader, Z_allies_arty_leader, type_allies_arty_leader)
+firing_positions_allies = available_firing_positions(Max_map_X, Max_map_Z, rectangle_allies, X_allies_arty_leader, Z_allies_arty_leader, type_allies_arty_leader, Xmax, Z0)
 
 axis_arty_leader = findObject(newMission, Type='Vehicle', Name="Lead_artillery_axis")[0]
 X_axis_arty_leader, Z_axis_arty_leader = newMission.ObjList[axis_arty_leader].PropList['XPos'], newMission.ObjList[axis_arty_leader].PropList['ZPos']
 type_axis_arty_leader = newMission.ObjList[axis_arty_leader].PropList['Script'].split('\\')[-1].split('.txt')[0]
 link_index_axis_arty_leader = newMission.ObjList[axis_arty_leader].PropList['LinkTrId']
-firing_positions_axis = available_firing_positions(Max_map_X, Max_map_Z, rectangle_axis, X_axis_arty_leader, Z_axis_arty_leader, type_axis_arty_leader)
+firing_positions_axis = available_firing_positions(Max_map_X, Max_map_Z, rectangle_axis, X_axis_arty_leader, Z_axis_arty_leader, type_axis_arty_leader, Xmax, Z0)
 
 # extraction last index in the mission file (to add new objects after)
 index_mcu = max(list(newMission.ObjList.keys()))+2
 
 # creating text to add new serverinputs and attack mcus to the mission 
 txt_mcus = ""
-index_mcu = 45
+index_mcu = max(list(newMission.ObjList.keys())) + 1
 for a in firing_positions_allies:
     XPos, ZPos = a
-    grid, key, subkey, subsubkey = pos_to_grid(XPos, ZPos)
+    grid, key, subkey, subsubkey = pos_to_grid(XPos, ZPos, Xmax, Z0)
     mcu_txt = attack_area_text(index_mcu, grid, key, subkey, subsubkey, link_index_allies_arty_leader, XPos, ZPos, "allies")
     index_mcu += 3
     txt_mcus += mcu_txt
+index_mcu += 1
 for a in firing_positions_axis:
     XPos, ZPos = a
-    grid, key, subkey, subsubkey = pos_to_grid(XPos, ZPos)
+    grid, key, subkey, subsubkey = pos_to_grid(XPos, ZPos, Xmax, Z0)
     mcu_txt = attack_area_text(index_mcu, grid, key, subkey, subsubkey, link_index_axis_arty_leader, XPos, ZPos,"axis")
     index_mcu += 3
     txt_mcus += mcu_txt

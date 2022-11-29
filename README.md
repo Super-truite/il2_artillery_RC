@@ -10,8 +10,9 @@ Set the path of your mission file in :  dist/config.ini
 In the mission editor, on your mission, import the ArtilleryRCgroup.Group (File -> Import From File)
 
 ## Define the map boundaries
-Place the map_boundary object at the top right point of the map
-![Alt text](img/map_boundary.PNG?raw=true "Title")
+Place the map_boundary objects at the down left and top right points of the map
+![Alt text](img/map_boundary1.PNG?raw=true "Title")
+![Alt text](img/map_boundary2.PNG?raw=true "Title")
 
 ## Place the limits of the artillery zones for Axis and Allies
 For Axis, place Artillery_Zone_Axis_1 and Artillery_Zone_Axis_2 and for allies,

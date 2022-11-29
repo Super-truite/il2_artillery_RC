@@ -1,7 +1,13 @@
 # il2_artillery_RC
 Script to allow artillery to be called on any reachable point of the map, in multiplayer, using IL2 GB remote console. 
 You can call the remote console directly using the binary executable available in the IL2 GB installation folder or you can also use discord if you use this tool: https://github.com/Super-truite/il2_discord_bot
+Example: https://www.youtube.com/watch?v=o3JbVc6WWEc
+
 Before using on your mission, make sure you keep a copy of your mission!
+
+## Download
+Download the .zip file from : https://github.com/Super-truite/il2_artillery_RC/releases/tag/v0.1
+Extract anywhere on the machine where you will edit your mission 
 
 ## Configuration
 Set the path of your mission file in :  dist/config.ini
